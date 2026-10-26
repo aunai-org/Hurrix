@@ -102,6 +102,9 @@ export function createGlobe(canvas: HTMLCanvasElement, meta: Meta, base: string,
     ir: tex("data/ir_global.jpg", false),
     live: tex("data/ir_live_mask.png", false),
   };
+  // the live day side, if the pipeline made one; without it the mask reads 0 and the Earth stays Blue Marble
+  const black = new THREE.DataTexture(new Uint8Array(4), 1, 1); black.needsUpdate = true;
+  const DAY = meta.day ? { tc: tex("data/day_global.jpg", true), mask: tex("data/day_mask.png", false) } : { tc: black, mask: black };
   // each storm's close-up, loaded the first time it is selected; its loop frames load when a loop is first played
   type StormTex = { still: THREE.Texture; vis: THREE.Texture | null; loop: Promise<THREE.Texture>[]; visLoop: Promise<THREE.Texture>[];
     motion: Map<string, Promise<THREE.Texture | null>> };
@@ -226,6 +229,8 @@ export function createGlobe(canvas: HTMLCanvasElement, meta: Meta, base: string,
     frameFlowMax: { value: new THREE.Vector2() },
     visFlowMax: { value: new THREE.Vector2() },
     irFlowMax: { value: new THREE.Vector2() },
+    dayMask: { value: DAY.mask as THREE.Texture },
+    dayOn: { value: meta.day ? 1 : 0 },
   };
 
   // ---------- stars, Earth, clouds, atmosphere ----------
@@ -233,7 +238,7 @@ export function createGlobe(canvas: HTMLCanvasElement, meta: Meta, base: string,
     side: THREE.BackSide, depthWrite: false, uniforms: { map: { value: T.sky } }, vertexShader: SKY.vertex, fragmentShader: SKY.fragment,
   })));
   scene.add(new THREE.Mesh(new THREE.SphereGeometry(1, 256, 128), new THREE.ShaderMaterial({
-    uniforms: { ...uni, day: { value: T.day }, night: { value: T.night }, water: { value: T.water }, topo: { value: T.topo } },
+    uniforms: { ...uni, day: { value: T.day }, night: { value: T.night }, water: { value: T.water }, topo: { value: T.topo }, dayTC: { value: DAY.tc } },
     vertexShader: EARTH.vertex, fragmentShader: EARTH.fragment,
   })));
   scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.0045, 256, 128), new THREE.ShaderMaterial({
@@ -438,6 +443,9 @@ export function createGlobe(canvas: HTMLCanvasElement, meta: Meta, base: string,
       if (mode > 0) uni.sunDir.value.lerp(eye.clone().addScaledVector(right, -0.7).addScaledVector(upv, 0.4).normalize(), 0.6).normalize();
     } else uni.sunDir.value.copy(SUN_REAL);
     uni.realSun.value = realSun ? 1 : 0;
+    // the live day side is one moment: it gives way to the moving infrared clouds while the replay plays
+    const dayTarget = meta.day && !playing ? 1 : 0;
+    uni.dayOn.value += (dayTarget - uni.dayOn.value) * Math.min(1, dt * (reduceMotion ? 60 : 5));
     syncHD();
     const s = 1 + 0.35 * Math.sin(uni.time.value * 2.4);
     pulses.forEach((p, i) => p.scale.setScalar(i === cur ? s : 0.8)); pulseMat.opacity = 0.9 - (s - 1) * 1.6;

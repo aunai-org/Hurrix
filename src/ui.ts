@@ -78,15 +78,17 @@ export function bindControls(globe: Globe, meta: Meta) {
   // imagery style, with a legend to match
   const RAMPS: Record<Style, { ramp: string; ticks: string[]; hint: () => string }> = {
     0: { ramp: "linear-gradient(90deg, #3a3f46, #e9ecef)", ticks: ["warm, low", "cold, high"],
-      hint: () => !st.visible ? "No daylight picture of this storm in this frame, so it shows infrared in grey."
-        : st.visKind === "natural" ? `${NATURAL_HINT}. Elsewhere, and at night, infrared in grey.`
-        : `True colour from ${visSatellite(st)}'s visible channels (1 km) around the storm. Elsewhere, and at night, infrared in grey.` },
+      hint: () => (!st.visible ? "No daylight picture of this storm in this frame, so it shows infrared in grey."
+        : st.visKind === "natural" ? `${NATURAL_HINT}.`
+        : `True colour from ${visSatellite(st)}'s visible channels (1 km) around the storm.`)
+        + (meta.day ? ` The day side is the satellites' own true-colour picture (about 10 km), clouds and all; at night, and where no satellite saw daylight, infrared in grey over Blue Marble.`
+          : " Elsewhere, and at night, infrared in grey.") },
     1: { ramp: "linear-gradient(90deg, #2a2a2a 0%, #d9d9d9 30%, #1a44f2 38%, #08a6d9 48%, #1bb320 58%, #f2cc0d 67%, #f25a05 76%, #b30d05 85%, #4d0202 100%)",
       ticks: ["+20", "−33", "−43", "−53", "−63", "−73 °C"], hint: () => "Infrared coloured by cloud-top temperature. Red and deep red are the tallest, strongest thunderstorms." },
     2: { ramp: "linear-gradient(90deg, #08184f, #e6edf8 45%, #6b7078)", ticks: ["sea", "low cloud", "cold core"],
       hint: () => "Infrared clouds over a blue sea. The tall, cold core shows soft grey; thinner and lower cloud is bright." },
   };
-  let style: Style = storms.some((s) => s.visible) ? 0 : 1;
+  let style: Style = meta.day || storms.some((s) => s.visible) ? 0 : 1;
   const setStyle = (s: Style) => {
     style = s; globe.setStyle(s); press("style", String(s));
     const r = RAMPS[s];
