@@ -63,11 +63,25 @@ const FLOW = /* glsl */ `
 const GLOBE_IR = /* glsl */ `float irAt(vec2 uv) { vec2 F = flowAt(irFlow, uv, irFlowMax);
   return mix(texture2D(ir, uv - irMix * F).r, texture2D(irB, uv + (1.0 - irMix) * F).r, irFade); }`;
 
-/** Blue Marble day side, city lights at night, ocean glint, terrain bump, and shadows cast by the IR clouds. */
+/**
+ * The live day side (pipeline/daymap.py): how much of the satellites' true-colour picture to show here, 0 to 1. Only in
+ * True colour, only while the latest frame is up (dayOn fades it out for the replay), and only where a satellite saw
+ * this spot in daylight at the frame time (the mask); everywhere else the Earth is Blue Marble under the infrared clouds.
+ */
+const DAY_LIVE = /* glsl */ `
+  uniform sampler2D dayMask; uniform float dayOn;
+  float dayLive(vec2 uv) { return dayOn * (1.0 - step(0.5, style)) * texture2D(dayMask, uv).r; }
+`;
+
+/**
+ * The Earth: by day the satellites' live true-colour picture where there is one (clouds and all), Blue Marble elsewhere;
+ * city lights at night, ocean tint, terrain bump, and shadows cast by the IR clouds.
+ */
 export const EARTH = {
   vertex: SPHERE_VERTEX,
   fragment: /* glsl */ `
-    uniform sampler2D day, night, water, topo, ir, irB; uniform vec3 sunDir; uniform float style, irMix; varying vec2 vUv; varying vec3 vN; varying vec3 vP;
+    uniform sampler2D day, night, water, topo, ir, irB, dayTC; uniform vec3 sunDir; uniform float style, irMix; varying vec2 vUv; varying vec3 vN; varying vec3 vP;
+    ${DAY_LIVE}
     ${GLSL_IR}
     ${FLOW}
     ${GLOBE_IR}
@@ -82,11 +96,14 @@ export const EARTH = {
       // cloud shadow: sample the IR clouds shifted away from the sun
       vec3 Lt = L - N * dot(L, N);
       vec2 sh = vec2(dot(Lt, t), dot(Lt, b)) * vec2(0.0045, 0.009);
-      float shadow = cloudOf(btOf(irAt(vUv + sh))) * 0.72;
+      // the live picture already holds its clouds and their shadows: no infrared shadow on top of it
+      float live = dayLive(vUv);
+      float shadow = cloudOf(btOf(irAt(vUv + sh))) * 0.72 * (1.0 - live);
       vec3 albedo = texture2D(day, vUv).rgb;
       float w = texture2D(water, vUv).r;
       albedo = mix(albedo, albedo * vec3(0.55, 0.75, 1.05), w * 0.5);
       if (style > 1.5) albedo = mix(albedo * vec3(0.55, 0.85, 0.45), vec3(0.03, 0.09, 0.36), w);
+      albedo = mix(albedo, texture2D(dayTC, vUv).rgb, live);
       vec3 sunCol = vec3(1.0, 0.96, 0.9) * 2.3;
       vec3 col = albedo * sunCol * max(ndl, 0.0) * (1.0 - shadow);
       // sunset tint near the terminator
@@ -113,6 +130,7 @@ export const CLOUDS = {
     ${GLSL_IR}
     ${FLOW}
     ${GLOBE_IR}
+    ${DAY_LIVE}
     // the HD window: sharper tiles where they have loaded (alpha 1), the global map everywhere else
     // (sampled outside any branch, so the GPU still picks the right mip level)
     float cloudCode(vec2 uv) {
@@ -131,6 +149,8 @@ export const CLOUDS = {
       vec3 d = N - eye; float s = dot(d, east) / patchAng, tt = dot(d, north) / patchAng;
       float inPatch = (1.0 - smoothstep(0.38, 0.47, max(abs(s), abs(tt)))) * step(0.0, dot(N, eye));
       a *= 1.0 - inPatch * patchOn;
+      // where the ground shows the live true-colour picture, its own clouds take the place of the infrared ones
+      a *= 1.0 - dayLive(vUv);
       float ndl = dot(N, L);
       // studio light wraps softly; the real sun gives a sharp terminator (high tops catch light just past it)
       float lit = mix(smoothstep(-0.25, 0.6, ndl), smoothstep(-0.05, 0.3, ndl), realSun);

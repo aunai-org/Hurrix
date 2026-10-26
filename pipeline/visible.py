@@ -147,15 +147,24 @@ def true_colour(sat, when, lat, lon):
         b, g, r = (sample(hima_band(k, when, lat, lon), la, lo) for k in (1, 2, 3))
     else:
         b, r, nir = (sample(goes_band(sat, k, when, lat, lon), la, lo) for k in (1, 2, 3))
-        g = np.clip(0.45 * r + 0.1 * nir + 0.45 * b, 0, 1)
+        g = goes_green(b, r, nir)
     mu = cos_sza(la, lo, when)
+    return (tone(r, g, b, mu) * 255 + 0.5).astype(np.uint8), float(np.mean(mu > 0.1))
+
+
+def goes_green(b, r, nir):
+    """GOES has no green band: make one from blue, red and the near-infrared "veggie" band, the way CIMSS does."""
+    return np.clip(0.45 * r + 0.1 * nir + 0.45 * b, 0, 1)
+
+
+def tone(r, g, b, mu):
+    """Reflectances (0..~1.2) and the cosine of the solar zenith angle to display colour (0..1, float32): divided by the
+    sun angle so it reads as surface and cloud colour, less blue haze (more at low sun), and a gentle tone curve."""
     norm = 1 / np.clip(mu, 0.12, 1)
     rgb = np.stack([r, g, b], -1) * norm[..., None]
-    # take off some of the blue haze the atmosphere adds (more at low sun), then a gentle tone curve
     rgb -= np.array([0.02, 0.03, 0.06]) * (0.6 + 0.4 * norm[..., None]) * (1 - np.clip(rgb.mean(-1, keepdims=True) * 1.6, 0, 1))
     rgb = np.clip(rgb, 0, 1.2) / 1.2
-    rgb = rgb ** (1 / 1.9)
-    return (np.clip(rgb, 0, 1) * 255 + 0.5).astype(np.uint8), float(np.mean(mu > 0.1))
+    return np.clip(rgb ** (1 / 1.9), 0, 1).astype(np.float32)
 
 
 def main():

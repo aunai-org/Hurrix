@@ -32,6 +32,9 @@ EXTENT = {"mtg_fd:ir105_hrfi": (-70.0, 70.0, -70.0, 70.0), "mtg_fd:rgb_truecolou
           "msg_fes:cth": (-77.0, 77.0, -77.0, 77.0), "msg_iodc:ir108": (-77.0, 77.0, -35.5, 118.5),
           "msg_iodc:cth": (-77.0, 77.0, -35.5, 118.5), "msg_iodc:rgb_natural": (-77.0, 77.0, -35.5, 118.5)}
 
+# the rendered colour pictures; asked for with a transparent background
+COLOUR = {"mtg_fd:rgb_truecolour", "msg_iodc:rgb_natural"}
+
 CAL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meteosat_cal.json")
 CAL = json.load(open(CAL_PATH)) if os.path.exists(CAL_PATH) else {}
 
@@ -56,6 +59,8 @@ def wms_params(layer, when, box, w, h, raw):
          "format": "image/png", "time": f"{when:%Y-%m-%dT%H:%M}:00.000Z"}
     if raw:
         p["SLD_BODY"] = RAW_SLD.format(layer=layer)
+    if layer in COLOUR:  # otherwise it paints the night side white, like cloud
+        p["transparent"] = "TRUE"
     return p
 
 
@@ -152,7 +157,8 @@ def box_for(lat, lon, km):
 
 
 # ---------- the service ----------
-UNREACHABLE_FOR = 45 * 60  # after a request fails twice, the rest of the run (every script) leaves the service alone
+UNREACHABLE_FOR = 45 * 60  # after STRIKES failed requests in a row, the rest of the run (every script) leaves the service alone
+STRIKES = 3
 
 
 def _open(url, timeout):
@@ -160,19 +166,33 @@ def _open(url, timeout):
 
 
 def _get(params):
-    """One request, tried twice. If both fail (timeout, refused, cut off), the service counts as unreachable for the rest
-    of the run, so a slow or broken EUMETView costs a couple of minutes, not the hourly run's whole time limit."""
-    mark = os.path.join(S.CACHE, "eumetview", "unreachable")
+    """One request, tried three times. Only after STRIKES requests in a row have failed for good (timeout, refused, cut
+    off, server error) does the service count as unreachable for the rest of the run, so a slow or broken EUMETView
+    costs a few minutes, not the hourly run's whole time limit, and one passing hiccup doesn't cost the rest of the run."""
+    folder = os.path.join(S.CACHE, "eumetview")
+    mark, strikes = os.path.join(folder, "unreachable"), os.path.join(folder, "strikes")
     if os.path.exists(mark) and time.time() - os.path.getmtime(mark) < UNREACHABLE_FOR:
         raise OSError("EUMETView was unreachable earlier in this run")
-    for attempt in range(2):
+    for wait in (5, 20, 0):
         try:
-            return _open(URL + "?" + urllib.parse.urlencode(params), 60)
+            data = _open(URL + "?" + urllib.parse.urlencode(params), 60)
         except (OSError, http.client.HTTPException) as e:
             err = e
-            time.sleep(5)
-    os.makedirs(os.path.dirname(mark), exist_ok=True)
-    open(mark, "w").write(f"{err}\n")
+            time.sleep(wait)
+            continue
+        try:
+            os.remove(strikes)
+        except FileNotFoundError:
+            pass
+        return data
+    os.makedirs(folder, exist_ok=True)
+    try:
+        n = int(open(strikes).read()) + 1
+    except (OSError, ValueError):
+        n = 1
+    open(strikes, "w").write(f"{n}\n")
+    if n >= STRIKES:
+        open(mark, "w").write(f"{err}\n")
     raise OSError(f"EUMETView unreachable: {err}")
 
 

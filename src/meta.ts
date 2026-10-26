@@ -67,6 +67,8 @@ export interface Meta {
   others: OtherStorm[];
   /** The HD cloud tiles (data/tiles/r_c.jpg) the pipeline wrote; absent before HD existed. */
   tiles?: TileGrid;
+  /** The live day side (data/day_global.jpg and day_mask.png, pipeline/daymap.py): the satellites it was made from. */
+  day?: { satellites: string[] };
   /** Largest motion, in frame pixels, the replay's motion files encode (pipeline/flow.py); absent without them. */
   flow?: { ir: number; vis: number; globe: number };
 }
@@ -80,7 +82,7 @@ export async function loadMeta(base: string): Promise<Meta> {
 export function loadMetaFrom(raw: any): Meta {
   // the first pipeline wrote one storm at the top level, with its files directly in data/
   if (!raw.storms) return { frame: raw.frame, others: [], storms: [{ ...raw, id: "s1", satellite: "Himawari-9", dir: "data/" }] };
-  return { frame: raw.frame, globeTimes: raw.globeTimes, tiles: raw.tiles, flow: raw.flow, others: raw.others ?? [], storms: (raw.storms as Omit<Storm, "dir">[]).map((s) => ({ ...s, dir: `data/storms/${s.id}/` })) };
+  return { frame: raw.frame, globeTimes: raw.globeTimes, tiles: raw.tiles, flow: raw.flow, day: raw.day, others: raw.others ?? [], storms: (raw.storms as Omit<Storm, "dir">[]).map((s) => ({ ...s, dir: `data/storms/${s.id}/` })) };
 }
 
 export const frameDate = (meta: Meta) => new Date(meta.frame.replace("Z", ":00Z"));

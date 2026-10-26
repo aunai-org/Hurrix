@@ -18,7 +18,7 @@ There are three views, picked under **View** in the bar at the bottom of the scr
 
 | View | What it shows |
 | --- | --- |
-| **Satellite** | The whole Earth as the satellites see it right now. Around the selected storm, a sharper close-up is laid on top: a true-colour photo (1 km per pixel) if it was daytime there, otherwise an infrared picture (2 km per pixel). |
+| **Satellite** | The whole Earth as the satellites see it right now: in True colour, the day side is their real photo, clouds and all. Around the selected storm, a sharper close-up is laid on top: a true-colour photo (1 km per pixel) if it was daytime there, otherwise an infrared picture (2 km per pixel). |
 | **Cloud heights** | The storm's close-up with every pixel lifted to the height of its cloud top, so the tall thunderstorms around the eye stand up like mountains. |
 | **3D storm** | The same storm as a soft, see-through 3D cloud you can fly around, lit by the sun. |
 
@@ -27,7 +27,7 @@ There are three views, picked under **View** in the bar at the bottom of the scr
 
 There are also three ways to colour the clouds, under **Colours**:
 
-- **True colour** shows real colour, the way your eyes would see it from space. It only works in daylight, so the night side falls back to infrared in grey.
+- **True colour** shows real colour, the way your eyes would see it from space. The whole day side is the satellites' own true-colour picture at the frame time (about 10 km per pixel), sharper around the storm. It only works in daylight, so the night side, the poles and the gaps fall back to infrared in grey over NASA's Blue Marble.
 - **Temperature** colours the clouds by temperature, like the weather maps on TV. Warm, low clouds are grey. Below −30 °C they run from blue through green, yellow and red to deep red at −75 °C. The colder the top, the higher and stronger the storm.
 - **Soft blue** shows infrared clouds over a deep blue sea, which makes the storm's shape easy to read.
 
@@ -50,9 +50,9 @@ On a phone the same page fits a portrait screen, with the panels as drawers on t
 NOAA satellite files ──► pipeline/ (Python) ──► public/data/ (images + JSON) ──► the page (three.js)
 ```
 
-- **Data:** infrared and visible pictures from five weather satellites: GOES-19, GOES-18 and Himawari-9 from [NOAA's open data on AWS](https://registry.opendata.aws/noaa-goes/), and Meteosat-12 and Meteosat-9 over Europe, Africa and the Indian Ocean from EUMETSAT's public map service, [EUMETView](https://view.eumetsat.int) (© EUMETSAT). No account or key needed. The Earth underneath is NASA's Blue Marble.
+- **Data:** infrared and visible pictures from five weather satellites: GOES-19, GOES-18 and Himawari-9 from [NOAA's open data on AWS](https://registry.opendata.aws/noaa-goes/), and Meteosat-12 and Meteosat-9 over Europe, Africa and the Indian Ocean from EUMETSAT's public map service, [EUMETView](https://view.eumetsat.int) (© EUMETSAT). No account or key needed. Where no satellite saw daylight, the Earth underneath is NASA's Blue Marble.
 - **Storms:** the active storms, their names, official winds and past tracks come from the NHC's [`CurrentStorms.json`](https://www.nhc.noaa.gov/CurrentStorms.json) and best-track files and from the JTWC's [warning feed](https://www.metoc.navy.mil/jtwc/rss/jtwc.rss). A storm both centres warn on is shown once, with the NHC data.
-- **Pipeline:** Python scripts stitch the satellites into one world map, take the official storms the satellites can see (or, if the feeds are down, find storms by their cold cloud cores), and cut a sharp close-up and a 24-hour loop for each, plus an hourly loop of the whole globe.
+- **Pipeline:** Python scripts stitch the satellites into one infrared world map and one true-colour map of the day side, take the official storms the satellites can see (or, if the feeds are down, find storms by their cold cloud cores), and cut a sharp close-up and a 24-hour loop for each, plus an hourly loop of the whole globe.
 - **Page:** a static TypeScript site that draws everything with [three.js](https://threejs.org) and WebGL shaders, built with [Vite](https://vite.dev).
 - **3D:** cloud heights come from cloud-top temperatures (the air cools about 6.3 °C per km), so the 3D shapes are modelled from real measurements.
 

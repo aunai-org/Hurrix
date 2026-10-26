@@ -42,12 +42,12 @@ Hurrix only uses open data you can download without an account or API key. The G
 
 | | Source | What Hurrix takes from it | Link |
 | --- | --- | --- | --- |
-| 🛰️ | **GOES-19** (GOES-East, NOAA), parked above 75.2° W. Sees the Americas and the Atlantic. | Infrared band 13 (`ABI-L2-CMIPF`, C13), cloud-top height (`ABI-L2-ACHAF`), visible bands 1–3 (C01–C03) | [noaa-goes19 bucket](https://noaa-goes19.s3.amazonaws.com/index.html) · [registry entry](https://registry.opendata.aws/noaa-goes/) |
+| 🛰️ | **GOES-19** (GOES-East, NOAA), parked above 75.2° W. Sees the Americas and the Atlantic. | Infrared band 13 (`ABI-L2-CMIPF`, C13), cloud-top height (`ABI-L2-ACHAF`), visible bands 1–3 (C01–C03), and the 2 km multi-band file (`ABI-L2-MCMIPF`) for the day side | [noaa-goes19 bucket](https://noaa-goes19.s3.amazonaws.com/index.html) · [registry entry](https://registry.opendata.aws/noaa-goes/) |
 | 🛰️ | **GOES-18** (GOES-West, NOAA), parked above 137° W. Sees the Eastern and Central Pacific. | The same products as GOES-19 | [noaa-goes18 bucket](https://noaa-goes18.s3.amazonaws.com/index.html) · [registry entry](https://registry.opendata.aws/noaa-goes/) |
 | 🛰️ | **Himawari-9** (Japan Meteorological Agency, mirrored by NOAA), parked above 140.7° E. Sees Asia, Australia and the Western Pacific. | Infrared band 13 and visible bands 1–3, as `AHI-L2-FLDK-ISatSS` tiles | [noaa-himawari9 bucket](https://noaa-himawari9.s3.amazonaws.com/index.html) · [registry entry](https://registry.opendata.aws/noaa-himawari/) |
-| 🛰️ | **Meteosat-12** (MTG-I1, EUMETSAT), parked above 0°. Sees Europe, Africa and the Atlantic. | Infrared at 10.5 µm (`mtg_fd:ir105_hrfi`, every 10 min, as raw 8-bit counts), true colour (`mtg_fd:rgb_truecolour`); cloud-top height from Meteosat-10 (`msg_fes:cth`, every 15 min) | [EUMETView](https://view.eumetsat.int) · WMS `https://view.eumetsat.int/geoserver/ows` |
+| 🛰️ | **Meteosat-12** (MTG-I1, EUMETSAT), parked above 0°. Sees Europe, Africa and the Atlantic. | Infrared at 10.5 µm (`mtg_fd:ir105_hrfi`, every 10 min, as raw 8-bit counts), true colour (`mtg_fd:rgb_truecolour`, for storms and the day side); cloud-top height from Meteosat-10 (`msg_fes:cth`, every 15 min) | [EUMETView](https://view.eumetsat.int) · WMS `https://view.eumetsat.int/geoserver/ows` |
 | 🛰️ | **Meteosat-9** (EUMETSAT, Indian Ocean service), parked above 45.5° E. Sees the Indian Ocean, the Middle East and India. | Infrared at 10.8 µm (`msg_iodc:ir108`, every 15 min, as grey), cloud-top height (`msg_iodc:cth`), natural colour (`msg_iodc:rgb_natural`) | [EUMETView](https://view.eumetsat.int) |
-| 🌍 | **NASA Blue Marble and Black Marble**, as packaged in the three-globe examples (MIT). | Daytime Earth, city lights at night, land/water mask, terrain bumps | [three-globe](https://github.com/vasturiano/three-globe) · [NASA Visible Earth](https://visibleearth.nasa.gov/collection/1484/blue-marble) |
+| 🌍 | **NASA Blue Marble and Black Marble**, as packaged in the three-globe examples (MIT). | Daytime Earth where no satellite saw daylight, city lights at night, land/water mask, terrain bumps | [three-globe](https://github.com/vasturiano/three-globe) · [NASA Visible Earth](https://visibleearth.nasa.gov/collection/1484/blue-marble) |
 | ☁️ | **three-globe's example cloud map** (MIT). | Archive clouds for the polar caps no satellite here covers | [three-globe on npm](https://www.npmjs.com/package/three-globe) |
 | 🔤 | **IBM Plex Mono** (SIL Open Font Licence). | The typeface | [@fontsource/ibm-plex-mono](https://fontsource.org/fonts/ibm-plex-mono) |
 
@@ -168,6 +168,18 @@ So the replay can slide the clouds instead of fading, this step measures how the
 
 The maxima go into `meta.json` as `flow`. Both `tiles.py` and `flow.py` are extras: if either fails, the run carries on and the page does without that layer.
 
+### 4.9 The live day side (`daymap.py`)
+
+So the whole sunlit globe is a real photo, not Blue Marble, this step builds one true-colour picture of the day side at the frame time, 4096 × 2048 (about 10 km per pixel, the same grid as `ir_global.jpg`), plus `day_mask.png`, which says how much of it to show.
+
+1. **Read each satellite.** GOES-19 and GOES-18: bands 1–3 from the 2 km multi-band file (`ABI-L2-MCMIPF`, about 350 MB, less than the three single-band files). Himawari-9: bands 1–3, only the tiles in daylight. Each is averaged to about 4 km.
+2. **Colour** them as for the close-ups ([4.5](#45-true-colour-visiblepy)): GOES's green made from the other bands, divided by the sun's angle, haze taken off, the same tone curve.
+3. **Meteosat-12** comes already rendered from EUMETSAT's map service (asked for with a transparent night side). Its colours are matched to GOES-19's per channel, by quantiles, where the two both see well in good daylight; when they share too little (the overlap is at night), the match saved in `meteosat_cal.json` is used (`python3 daymap.py calibrate DATE`, at about 15:30 UTC).
+4. **Stitch.** Each satellite's quality is how well it sees (from the view angle) times how high the sun is for it (none below about 2°, all above about 9°; Meteosat-12 from 5–13° in the evening and 17–33° in the morning, and faded over the last 8° before its picture's 70° edge). The best wins, blended with the runner-up near the seams, as for the infrared.
+5. **Mask.** That quality is the mask. Where it's 0 (night, the poles, the gaps), the page keeps Blue Marble.
+
+If a satellite fails, the map goes without it; if all fail, nothing is written, `meta.json` has no `day`, and the page keeps Blue Marble. It takes a minute or two plus the downloads (about 1.3 GB in all, half of it Himawari's red band).
+
 ## 5. The files the page loads
 
 Everything lives in `public/data/`:
@@ -177,6 +189,8 @@ Everything lives in `public/data/`:
 | `meta.json` | small | The frame time, the storms with a close-up, and the other active storms (`others`) |
 | `ir_global.jpg` | 4096 × 2048 | Global infrared, as greyscale codes |
 | `ir_live_mask.png` | 1024 × 512 | White where the data is live, black where it's archive |
+| `day_global.jpg` | 4096 × 2048 | The live day side in true colour, about 10 km per pixel ([4.9](#49-the-live-day-side-daymappy)) |
+| `day_mask.png` | 2048 × 1024 | How much of `day_global.jpg` to show: white in good daylight under a satellite, fading to black toward night, disc edges and the poles |
 | `storms/sN/storm_ir.png` | 1024 × 1024 | The storm's infrared close-up (2 km per pixel) |
 | `storms/sN/storm_vis.jpg` | 2048 × 2048 | The storm's true-colour close-up (1 km per pixel), if it was daytime |
 | `storms/sN/loop/fNN.jpg` | 1024 × 1024 | Infrared loop frames over the last 24 hours (30 minutes apart, 10 minutes in the last 6 hours) |
@@ -224,10 +238,11 @@ At the top level, beside `frame`, `storms`, `others` and `globeTimes`:
 
 ```jsonc
 "tiles": { "cols": 32, "rows": 16, "size": 512, "have": ["3_7", "…"], "dir": "tiles/20261023T1310" },  // the HD tiles written, and their folder
+"day": { "satellites": ["GOES-19", "GOES-18", "Himawari-9", "Meteosat-12"] },  // the live day side, if it was made
 "flow": { "ir": 48, "vis": 64, "globe": 16 }                          // max motion each kind of motion file encodes
 ```
 
-Both are absent in data from before HD and the sliding replay; the page then hides HD and holds and fades the replay.
+`tiles` and `flow` are absent in data from before HD and the sliding replay; the page then hides HD and holds and fades the replay. Without `day`, the Earth is Blue Marble everywhere.
 
 ## 6. How the page draws the globe
 
@@ -241,7 +256,7 @@ From the inside out:
 
 | Layer | Shader | What it does |
 | --- | --- | --- |
-| Earth | `EARTH` | Blue Marble by day, city lights at night, with the land/water mask and terrain bumps for relief |
+| Earth | `EARTH` | In True colour, the live day side (`day_global.jpg`, clouds and all) where `day_mask.png` says a satellite saw daylight; Blue Marble everywhere else. City lights at night, with the land/water mask and terrain bumps for relief. The infrared clouds cast no shadow on the live picture, which has its own. |
 | Clouds | `CLOUDS` | The global infrared layer on a shell just above the ground. Each pixel's code becomes a temperature, then an opacity (warm sea is clear, cold tops are solid) and a colour from the current style. Clouds cast a soft shadow on the ground. While the loop plays, it slides the two hourly globe frames either side of the moment along their motion, so the clouds move everywhere. With **HD** on, zoomed in (camera closer than 2 Earth radii) and the loop paused, it draws a 6 × 6-tile window of the HD tiles around the point below the camera; outside the window, or until a tile has loaded, it shows the global layer. |
 | Imagery patch | `IMAGERY` | The selected storm's sharp close-up, draped over the globe (Satellite view only). Its edges fade into the global clouds, so there's no square seam. |
 | Atmosphere | `ATMOSPHERE` | A faint blue rim that fades softly into space |
@@ -274,11 +289,14 @@ The scene is drawn in *high dynamic range*: colours can be brighter than white, 
 
 All three styles colour the same infrared measurements; True colour adds the true-colour photo where there's one.
 
-- **True colour:** the true-colour photo around the selected storm, where it was daytime. Everywhere else, infrared in grey: warm is dark, cold is white.
+- **True colour:** the day side is the satellites' own true-colour picture at the frame time, clouds and all, about 10 km per pixel ([4.9](#49-the-live-day-side-daymappy)), with the sharper 1 km photo around the selected storm. Where the infrared clouds would sit on top of it, they step aside. At night, and wherever no satellite saw daylight, infrared in grey (warm is dark, cold is white) over Blue Marble. While the replay plays, the day side fades back to Blue Marble under the moving infrared clouds, because it's one moment.
 - **Temperature:** the Windy-style temperature palette. Grey down to −30 °C, then blue, cyan, green, yellow, orange and red, to deep red at −75 °C and colder.
 - **Soft blue:** infrared clouds over a deep blue sea. Cold cores are soft grey and edges are bright, so the storm's shape stands out.
 
-Cloud opacity follows temperature in every style: anything warmer than about 13 °C (286 K) is clear, and it's fully solid by about −41 °C (232 K).
+The infrared styles keep Blue Marble under the clouds, so the colours only ever mean temperature.
+
+Cloud opacity follows temperature in every style:
+ anything warmer than about 13 °C (286 K) is clear, and it's fully solid by about −41 °C (232 K).
 
 ## 8. The 3D views
 
@@ -337,6 +355,7 @@ Hurrix is honest about what it doesn't know, so nobody mistakes it for an offici
 - **Weak storms can be missed when the feeds are down.** The fallback uses the pictures alone, so a weak or disorganised storm without a solid cold core may not count.
 - **Meteosat is calibrated pictures, not measurements.** Its temperatures are matched to GOES-19 and Himawari-9, about 3 K apart on a typical pixel. Tops colder than about 205 K over the Indian Ocean (195 K under Meteosat-12) look flatter than they are. East of about 65° E the daylight picture is Meteosat-9's natural colour, a false-colour mix, and the page says so.
 - **One moment in time.** The page shows the frame the pipeline last ran on, not a live stream.
+- **The live day side is coarser and has gaps.** It's about 10 km per pixel (the HD tiles stay infrared), it doesn't move in the replay, and it fades to Blue Marble near sunrise and sunset, beyond about 70° north and south, and where only a satellite's far edge sees. Meteosat-12's picture is EUMETSAT's own rendering, matched to GOES-19's colours; it fades out earlier than the others, by morning especially, where it turns hazy white.
 - **The 3D shapes are modelled** from cloud-top temperatures ([section 8](#8-the-3d-views)).
 
 ## 12. Ideas for extending it
