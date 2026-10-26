@@ -101,7 +101,7 @@ def stitch(h):
     try:
         bts = [near(lambda t: goes("goes19", t), when), near(lambda t: goes("goes18", t), when), near(himawari, when)]
     except (FileNotFoundError, OSError) as e:
-        print("  globe skip", when, e); return when, None
+        print("  globe: skipped", when, e); return when, None
     for sat in ("meteosat12", "meteosat9"):
         try:
             bts.append(near(lambda t: M.world(sat, t, 360 / W), M.slot(sat, when), M.SATS[sat]["step"]))

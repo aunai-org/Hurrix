@@ -204,7 +204,7 @@ def closeup_near(sat, when, lat, lon, n=N):
         try:
             return closeup(sat, when - timedelta(minutes=dm), lat, lon, n), when - timedelta(minutes=dm)
         except (FileNotFoundError, OSError) as e:
-            print("  skip", sat, when - timedelta(minutes=dm), e)
+            print("  close-up: skipped", sat, when - timedelta(minutes=dm), e)
     return None, None
 
 

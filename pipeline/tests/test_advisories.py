@@ -101,3 +101,21 @@ def test_active_storms_history_from_bdeck():
 def test_active_storms_history_survives_bdeck_failure():
     storms = {s["id"]: s for s in A.active_storms(fake_get(fail=("/btk/",)))}
     assert storms["AL10"]["history"] == [("2026-10-22T21:00Z", 40.0, -65.8, 55)]
+
+
+def test_parse_nhc_skips_one_malformed_storm():
+    doc = json.loads((FIX / "CurrentStorms.json").read_text())
+    del doc["activeStorms"][0]["latitudeNumeric"]
+    assert [s["id"] for s in A.parse_nhc(doc)] == ["EP22"]
+
+
+def test_parse_jtwc_rss_keeps_each_kind_with_its_own_warning():
+    # a warning without a JMV file must not hand its kind to the next storm's file
+    xml = ("<item><description>Super Typhoon 30W (Abe) Warning #01 <a href='https://x/wp3026web.txt'>text</a> "
+           "Tropical Storm 31W (Bo) Warning #02 <a href='https://x/wp3126.tcw'>JMV</a></description></item>")
+    assert A.parse_jtwc_rss(xml) == [("Tropical storm", "https://x/wp3126.tcw")]
+
+
+def test_active_storms_survives_html_error_pages():
+    page = "<html><body><h1>503 Service Unavailable</h1></body></html>"
+    assert A.active_storms(lambda url: page) == []

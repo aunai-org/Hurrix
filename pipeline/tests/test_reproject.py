@@ -71,3 +71,18 @@ def test_vis_source_routes_meteosat_storms():
     assert V.vis_source("meteosat9", -15, 80) == ("msg_iodc:rgb_natural", "meteosat9", "natural")
     assert V.vis_source("meteosat9", -15, 62)[2] == "natural"  # Meteosat-12's picture stops at 70° E, inside this close-up
     assert V.vis_source("goes19", 20, -60) is None
+
+
+def test_load_sats_steps_back_one_height_scan_when_the_latest_is_missing(monkeypatch):
+    asked = []
+
+    def cth_world(sat, when, deg):
+        asked.append(when)
+        if when == datetime(2026, 10, 24, 9):
+            raise FileNotFoundError("not published yet")
+        return "height"
+    monkeypatch.setattr(R, "_base_sats", lambda here: [])
+    monkeypatch.setattr(M, "world", lambda *a: "grid")
+    monkeypatch.setattr(M, "cth_world", cth_world)
+    sats = R.load_sats(".", datetime(2026, 10, 24, 9), 0.1)
+    assert [s["ht"] for s in sats] == ["height", "height"] and datetime(2026, 10, 24, 8, 45) in asked

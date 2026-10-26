@@ -133,11 +133,18 @@ class GridDisc:
             ok &= (lat >= e[0]) & (lat <= e[1]) & ((lon - e[2]) % 360 <= e[3] - e[2])
         return np.clip(fr, 0, h - 1), np.clip(fc, 0, w - 1), ok
 
+    def _prepared(self):
+        """The picture with NaN as 0, and where the NaNs were, made once (the HD tiles sample the same grid many times)."""
+        if getattr(self, "_prep", None) is None or self._prep[0] is not self.img:
+            img = self.img.astype(np.float32)
+            self._prep = (self.img, np.nan_to_num(img, nan=0.0), np.isnan(img).astype(np.float32))
+        return self._prep[1:]
+
     def sample(self, lat, lon):
         fr, fc, ok = self._rows_cols(lat, lon)
-        img = self.img.astype(np.float32)
-        out = _interp(np.nan_to_num(img, nan=0.0), fr, fc)
-        bad = _interp(np.isnan(img).astype(np.float32), fr, fc) > 0  # any NaN neighbour
+        filled, holes = self._prepared()
+        out = _interp(filled, fr, fc)
+        bad = _interp(holes, fr, fc) > 0  # any NaN neighbour
         return np.where(ok & ~bad, out, np.nan).astype(np.float32)
 
 
@@ -222,7 +229,8 @@ def image(layer, when, box, w, h, raw=False):
         for (sub, pw, ph, r, c), rgb in zip(ps, ex.map(lambda p: _piece(layer, when, p[0], p[1], p[2], raw), ps)):
             out[r:r + ph, c:c + pw] = rgb
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    Image.fromarray(out).save(path + ".part.png"); os.replace(path + ".part.png", path)
+    part = f"{path}.{os.getpid()}.part.png"  # two processes writing the same picture never share a temp file
+    Image.fromarray(out).save(part); os.replace(part, path)
     return out
 
 

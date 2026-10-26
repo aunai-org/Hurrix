@@ -151,3 +151,10 @@ def test_no_data_sentinel_decodes_to_nothing():
     s = np.array([[M.NO_DATA]], np.uint8)
     assert np.isnan(M.decode_cth(s, cal)[0, 0]) and np.isnan(M.to_bt("meteosat9", s, cal)[0, 0])
     assert np.isnan(M.to_bt("meteosat12", s, cal)[0, 0])
+
+
+def test_griddisc_sample_follows_a_replaced_picture():
+    g = M.GridDisc(np.full((10, 10), 250.0, np.float32), -10, 10, -10, 10, 0.0)
+    assert g.sample(0.0, 0.0) == pytest.approx(250.0)
+    g.img = np.full((10, 10), np.nan, np.float32)
+    assert np.isnan(g.sample(0.0, 0.0))

@@ -176,11 +176,12 @@ def main():
     for st in meta["storms"]:
         sat = sat_of[st["satellite"]]
         img = None
-        for dm in (0, -10, 10) if daylit(frame, st["eye"]["lat"], st["eye"]["lon"]) >= 0.05 else ():
+        step = S.STEP[sat]  # the scan before first: the newest may not be out yet
+        for dm in (0, step, -step) if daylit(frame, st["eye"]["lat"], st["eye"]["lon"]) >= 0.05 else ():
             try:
                 img, day = true_colour(sat, frame - timedelta(minutes=dm), st["eye"]["lat"], st["eye"]["lon"]); break
             except (FileNotFoundError, OSError) as e:
-                print("  skip", st["id"], dm, e)
+                print("  visible: skipped", st["id"], frame - timedelta(minutes=dm), e)
         st.pop("visible", None)
         if img is None or day < 0.05:
             print(st["id"], "no daylight visible image at the frame time")
@@ -200,7 +201,7 @@ def main():
             try:
                 im, day_t = true_colour(sat, t, st["eye"]["lat"], st["eye"]["lon"])
             except (FileNotFoundError, OSError) as e:
-                print("  loop skip", t, e); continue
+                print("  visible loop: skipped", t, e); continue
             if day_t < 0.05:
                 continue
             Image.fromarray(im).save(os.path.join(out, "storms", st["id"], "loop", f"v{len(vis_times):02d}.jpg"), quality=90)
