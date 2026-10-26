@@ -38,25 +38,35 @@ def _num(v):
 def parse_nhc(doc):
     out = []
     for s in doc.get("activeStorms", []):
-        sid = s["id"]  # "al102026"
-        wind = _num(s.get("intensity"))
-        kind = NHC_KIND.get(s.get("classification"), "Tropical cyclone")
-        if kind == "Hurricane" and wind is not None and wind >= 96:
-            kind = "Major hurricane"
-        out.append({"atcf": sid, "id": sid[:2].upper() + sid[2:4], "name": s["name"].title(), "kind": kind, "windKt": wind,
-                    "pressureMb": _num(s.get("pressure")), "lat": float(s["latitudeNumeric"]),
-                    "lon": float(s["longitudeNumeric"]), "agency": "NHC",
-                    "advisory": s["lastUpdate"][:16] + "Z"})
+        try:
+            out.append(_nhc_storm(s))
+        except (KeyError, TypeError, ValueError, AttributeError) as e:  # one bad entry costs only that storm
+            print(f"advisories: NHC storm {s.get('id') if isinstance(s, dict) else s!r} skipped ({e!r})")
     return out
 
 
+def _nhc_storm(s):
+    sid = s["id"]  # "al102026"
+    wind = _num(s.get("intensity"))
+    kind = NHC_KIND.get(s.get("classification"), "Tropical cyclone")
+    if kind == "Hurricane" and wind is not None and wind >= 96:
+        kind = "Major hurricane"
+    return {"atcf": sid, "id": sid[:2].upper() + sid[2:4], "name": s["name"].title(), "kind": kind, "windKt": wind,
+            "pressureMb": _num(s.get("pressure")), "lat": float(s["latitudeNumeric"]),
+            "lon": float(s["longitudeNumeric"]), "agency": "NHC",
+            "advisory": s["lastUpdate"][:16] + "Z"}
+
+
 def parse_jtwc_rss(xml):
-    """(kind, tcw url) for each storm JTWC is warning on. Items without a warning (outlooks) are skipped."""
+    """(kind, tcw url) for each storm JTWC is warning on. Items without a warning (outlooks) are skipped, and so is a
+    warning without a JMV file: each warning takes only the file listed after it, before the next warning."""
     out = []
     for item in re.findall(r"<item>(.*?)</item>", xml, re.S):
-        tcws = re.findall(r"https://[^'\"\s]+\.tcw", item)
-        for m, url in zip(re.finditer(r"([A-Za-z][A-Za-z ]*?)\s+\d\d[A-Z]\s+\([^)]+\)\s+Warning", item), tcws):
-            out.append((" ".join(m.group(1).split()).capitalize(), url))
+        warnings = list(re.finditer(r"([A-Za-z][A-Za-z ]*?)\s+\d\d[A-Z]\s+\([^)]+\)\s+Warning", item))
+        for m, nxt in zip(warnings, warnings[1:] + [None]):
+            tcw = re.search(r"https://[^'\"\s]+\.tcw", item[m.end():nxt.start() if nxt else len(item)])
+            if tcw:
+                out.append((" ".join(m.group(1).split()).capitalize(), tcw.group(0)))
     return out
 
 

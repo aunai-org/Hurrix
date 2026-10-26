@@ -54,12 +54,29 @@ function fillCard(meta: Meta, st: Storm) {
     : "No estimate<br><small>the IR method used here needs a clear eye</small>");
 }
 
+/** A storm with a warning but no satellite view here: what the warning centre says, and why there's no picture. */
+function fillOther(o: OtherStorm) {
+  const ns = (v: number, p: string, n: string) => `${Math.abs(v).toFixed(2)}°${v >= 0 ? p : n}`;
+  const last = o.history?.at(-1)?.[0];
+  $("card-eyebrow").textContent = `${o.agency} advisory${last ? ` ${hhmm(new Date(isoMs(last)))}` : ""} · no satellite view here`;
+  $("card-title").textContent = stormTitle(o);
+  html("fix", `${ns(o.lat, "N", "S")} ${ns(o.lon, "E", "W")}<br><small>advisory position</small>`);
+  html("motion", "—");
+  $("eyed").textContent = "—";
+  $("tops").textContent = "—";
+  $("cdo").textContent = "—";
+  $("trackinfo").textContent = "Too near the edge of every satellite's view here for a close-up";
+  $("source").textContent = `${o.agency} advisory · ${o.agencyId}`;
+  $("peek").textContent = o.windKt != null ? `${o.windKt} kt (${o.agency}) · no satellite view` : `${stormSub(o)} · no satellite view`;
+  html("vmax", o.windKt != null ? `${o.windKt} kt · ${o.agency}<br><small>official advisory</small>` : "No official wind in the advisory");
+}
+
 export function bindControls(globe: Globe, meta: Meta) {
   const frame = frameDate(meta);
   const storms = meta.storms;
   let st = storms[0], sel = 0;
   const hints = () => [
-    `Infrared at 10.4 µm from five geostationary satellites, stitched at ${hhmm(frame)} ${dayStr(frame)}. Colder tops are higher.`,
+    `Infrared (10.4 to 10.8 µm) from five geostationary satellites, stitched at ${hhmm(frame)} ${dayStr(frame)}. Colder tops are higher.`,
     `The real 2 km ${st.satellite} frame, lifted by the height its temperature implies (≈ 6.3 K per km). Drag to turn around the storm, right-drag (or two fingers) to slide across it, scroll out to spin the globe.`,
     "A 3D cloud built from the same satellite frame: each cloud stands as tall as its top temperature implies. Drag to turn, right-drag (or two fingers) to slide.",
   ];
@@ -159,10 +176,11 @@ export function bindControls(globe: Globe, meta: Meta) {
   const root = $("labels");
   type Label = { el: HTMLElement; p: THREE.Vector3; dx: number; dy: number };
   const labels: Label[] = CITIES.map(([n, la, lo]) => ({
-    el: root.appendChild(Object.assign(document.createElement("div"), { className: "label", textContent: n })), p: ll2v(la, lo, 1.004), dx: 8, dy: -6,
+    el: root.appendChild(Object.assign(document.createElement("div"), { className: "label", textContent: n, ariaHidden: "true" })), p: ll2v(la, lo, 1.004), dx: 8, dy: -6,
   }));
   const stormLabels = storms.map((s, i) => {
     const el = Object.assign(document.createElement("button"), { type: "button", className: "label storm", textContent: s.name ? stormTitle(s) : storms.length > 1 ? `${i + 1} · ${naming(s).title}` : `EYE · ${hhmm(frame)}` });
+    el.ariaLabel = `${el.textContent}: show this storm`;
     el.addEventListener("click", () => select(i));
     root.appendChild(el);
     const l = { el, p: ll2v(s.eye.lat, s.eye.lon, 1.02), dx: 34, dy: -34 };
@@ -171,10 +189,16 @@ export function bindControls(globe: Globe, meta: Meta) {
   });
 
   // storms with a warning but no imagery here: a dimmed label that turns the globe to them, back in the Satellite view
-  const lookAt = (o: OtherStorm) => { if (mode !== 0) setMode(0); globe.lookAt(o.lat, o.lon); };
+  const lookAt = (o: OtherStorm) => {
+    if (mode !== 0) setMode(0);
+    globe.lookAt(o.lat, o.lon);
+    fillOther(o);
+    stormLabels.forEach((el) => el.classList.remove("on"));
+    press("storm", "");
+  };
   for (const o of meta.others) {
     const el = Object.assign(document.createElement("button"), { type: "button", className: "label storm off", textContent: stormTitle(o) });
-    el.title = `${stormSub(o)} · no satellite view here`;
+    el.title = el.ariaLabel = `${stormTitle(o)}: ${stormSub(o)} · no satellite view here`;
     el.addEventListener("click", () => lookAt(o));
     root.appendChild(el);
     labels.push({ el, p: ll2v(o.lat, o.lon, 1.02), dx: 34, dy: -34 });
