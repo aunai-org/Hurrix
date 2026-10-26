@@ -94,7 +94,10 @@ def load_sats(here, when=None, deg=None):
         except Exception as e:  # the service is slow, down or has neither scan: the map goes without this satellite
             print(f"{sat}: skipped ({e})"); continue
         try:
-            ht = M.cth_world(sat, t, max(deg, 360 / 4096))  # the height product is 3 km at best; the 4096 map's size
+            try:
+                ht = M.cth_world(sat, t, max(deg, 360 / 4096))  # the height product is 3 km at best; the 4096 map's size
+            except FileNotFoundError:  # not out yet: the one 15 minutes before
+                ht = M.cth_world(sat, t - timedelta(minutes=15), max(deg, 360 / 4096))
         except Exception as e:
             print(f"{sat} cloud-top height: skipped ({e})"); ht = None
         sats.append({"grid": grid, "ht": ht, "lon0": M.SATS[sat]["lon0"], "name": sat})
