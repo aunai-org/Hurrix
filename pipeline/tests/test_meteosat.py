@@ -100,12 +100,32 @@ def test_get_gives_up_on_the_service_for_the_rest_of_the_run(monkeypatch, tmp_pa
         calls.append(url)
         raise urllib.error.URLError("timed out")
     monkeypatch.setattr(M, "_open", unreachable)
-    with pytest.raises(OSError):
-        M._get({"a": "1"})
+    for k in range(M.STRIKES):
+        with pytest.raises(OSError, match="EUMETView unreachable"):
+            M._get({"a": str(k)})
     n = len(calls)
     with pytest.raises(OSError, match="earlier in this run"):
-        M._get({"a": "2"})
-    assert n == 2 and len(calls) == n  # the second request never went out
+        M._get({"a": "next"})
+    assert n == 3 * M.STRIKES and len(calls) == n  # the next request never went out
+
+
+def test_get_rides_out_a_passing_server_error(monkeypatch, tmp_path):
+    # one 503 in the storm loops used to turn EUMETView off for the whole run, globe frames and day map included
+    import urllib.error
+    monkeypatch.setattr(M.S, "CACHE", str(tmp_path))
+    monkeypatch.setattr(M.time, "sleep", lambda s: None)
+    replies = iter([urllib.error.HTTPError("u", 503, "Service Unavailable", {}, None)] * 3 + [b"png"] * 2)
+
+    def flaky(url, timeout):
+        r = next(replies)
+        if isinstance(r, Exception):
+            raise r
+        return r
+    monkeypatch.setattr(M, "_open", flaky)
+    with pytest.raises(OSError):
+        M._get({"a": "1"})  # failed for good, but only one strike
+    assert M._get({"a": "2"}) == b"png" and M._get({"a": "3"}) == b"png"
+    assert not (tmp_path / "eumetview" / "unreachable").exists() and not (tmp_path / "eumetview" / "strikes").exists()
 
 
 def test_get_turns_a_dropped_reply_into_oserror(monkeypatch, tmp_path):
