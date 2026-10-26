@@ -20,6 +20,7 @@ python3 -W ignore export.py "$D"
 FRAME=$F python3 -W ignore storms.py "$D"
 FRAME=$F python3 -W ignore visible.py "$D"
 FRAME=$F python3 -W ignore globe.py "$D"
-# the HD tiles and the replay motion are extras: if either fails, the page simply goes without it
+# the HD tiles, the replay motion and the live day side are extras: if one fails, the page simply goes without it
+FRAME=$F python3 -W ignore daymap.py "$D" || echo "day map: skipped"
 python3 -W ignore tiles.py "$D" || echo "tiles: skipped"
 python3 -W ignore flow.py "$D" || echo "flow: skipped"

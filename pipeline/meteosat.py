@@ -32,6 +32,9 @@ EXTENT = {"mtg_fd:ir105_hrfi": (-70.0, 70.0, -70.0, 70.0), "mtg_fd:rgb_truecolou
           "msg_fes:cth": (-77.0, 77.0, -77.0, 77.0), "msg_iodc:ir108": (-77.0, 77.0, -35.5, 118.5),
           "msg_iodc:cth": (-77.0, 77.0, -35.5, 118.5), "msg_iodc:rgb_natural": (-77.0, 77.0, -35.5, 118.5)}
 
+# the rendered colour pictures; asked for with a transparent background
+COLOUR = {"mtg_fd:rgb_truecolour", "msg_iodc:rgb_natural"}
+
 CAL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meteosat_cal.json")
 CAL = json.load(open(CAL_PATH)) if os.path.exists(CAL_PATH) else {}
 
@@ -56,6 +59,8 @@ def wms_params(layer, when, box, w, h, raw):
          "format": "image/png", "time": f"{when:%Y-%m-%dT%H:%M}:00.000Z"}
     if raw:
         p["SLD_BODY"] = RAW_SLD.format(layer=layer)
+    if layer in COLOUR:  # otherwise it paints the night side white, like cloud
+        p["transparent"] = "TRUE"
     return p
 
 
