@@ -94,12 +94,22 @@ body { margin: 0; background: var(--space); color: var(--ink); font: 13px/1.45 v
 .drawers .panel[data-closing] { animation: drawer-out .24s ease-in forwards; }
 @keyframes drawer-in { from { transform: translateX(calc(100% + 60px)); opacity: .2; } }
 @keyframes drawer-out { to { transform: translateX(calc(100% + 60px)); opacity: .2; } }
+/* About: what the page shows, where every picture comes from, and what it does not claim */
+.about { box-sizing: border-box; width: 318px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.about h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: .2em; }
+.about p { margin: 0; font-size: 12px; line-height: 1.55; }
+.about .grid { grid-template-columns: 64px minmax(0, 1fr); font-size: 11.5px; line-height: 1.5; }
+.about .grid dt { font-size: 10px; }
+.about a { color: var(--cool); text-underline-offset: 3px; }
+.about a:hover { color: var(--ink); }
+.about a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.about .disclaimer { padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10.5px; }
 #cardbody, #legendbody { display: flex; flex-direction: column; gap: 10px; }
 .peek { display: none; margin: 0; color: var(--accent); font-size: 12px; font-variant-numeric: tabular-nums; }
 @media (max-width: 900px) {
   .drawer-tabs, .drawers { top: calc(70px + env(safe-area-inset-top, 0px)); }
   .drawers { max-height: calc(100dvh - 70px - 260px); }
-  .card, .legend { width: min(318px, calc(100vw - 62px)); padding: 12px 14px; }
+  .card, .legend, .about { width: min(318px, calc(100vw - 62px)); padding: 12px 14px; }
   .card h1 { font-size: 16px; }
   #cardbody { gap: 6px; }
   .card .more { display: none; }

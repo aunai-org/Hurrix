@@ -263,9 +263,10 @@ export function bindControls(globe: Globe, meta: Meta) {
     }
   });
 
-  // the card and the legend are drawers: hidden at first, a tab on the right edge slides each in, and each hides itself
-  // again a few seconds after the pointer leaves it (or straight away when you go back to the globe)
-  const drawers: { close: () => void }[] = [["card", "cardtoggle"], ["legend", "legendtoggle"]].map(([id, tab]) => {
+  // the card, the legend and About are drawers: hidden at first, a tab on the right edge slides each in, and each hides
+  // itself again a few seconds after the pointer leaves it (or straight away when you go back to the globe). About is
+  // for reading, so it stays until you close it.
+  const drawers: { close: () => void }[] = ([["card", "cardtoggle", true], ["legend", "legendtoggle", true], ["about", "abouttoggle", false]] as const).map(([id, tab, autoHide]) => {
     const el = $(id), btn = $(tab);
     let timer = 0;
     const open = () => {
@@ -281,7 +282,7 @@ export function bindControls(globe: Globe, meta: Meta) {
       el.setAttribute("data-closing", "");
       setTimeout(() => { if (el.hasAttribute("data-closing")) { el.removeAttribute("data-closing"); el.dataset.open = "false"; } }, 240);
     };
-    const later = (ms: number) => { clearTimeout(timer); timer = window.setTimeout(close, ms); };
+    const later = (ms: number) => { clearTimeout(timer); if (autoHide) timer = window.setTimeout(close, ms); };
     btn.addEventListener("click", () => {
       if (btn.getAttribute("aria-expanded") === "true") return close();
       // on a phone there is room for one drawer at a time

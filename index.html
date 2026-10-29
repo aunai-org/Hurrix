@@ -26,6 +26,7 @@
     <nav class="drawer-tabs" aria-label="Panels">
       <button type="button" class="drawer-tab" id="cardtoggle" aria-expanded="false" aria-controls="card"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span>Storm</span></button>
       <button type="button" class="drawer-tab" id="legendtoggle" aria-expanded="false" aria-controls="legend"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span>Legend</span></button>
+      <button type="button" class="drawer-tab" id="abouttoggle" aria-expanded="false" aria-controls="about"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span>About</span></button>
     </nav>
     <div class="drawers">
     <section class="card panel" id="card" aria-label="Selected storm" data-open="false">
@@ -67,6 +68,21 @@
       <div class="hint" id="sunhint" hidden></div>
       </div>
     </aside>
+
+    <section class="about panel" id="about" aria-labelledby="about-title" data-open="false">
+      <div class="eyebrow">About</div>
+      <h2 id="about-title">Hurrix</h2>
+      <p>The tropical cyclones the warning centres are tracking right now, on a globe of live weather-satellite pictures. Nothing on the globe is drawn by hand: every cloud is a pixel a satellite measured, refreshed through the day.</p>
+      <dl class="grid">
+        <dt>Shows</dt><dd>Each active storm by its official name, with a sharp close-up around it: a 1 km true-colour photo by day, 2 km infrared at night. Cloud heights and 3D storm lift those same pixels to the height their temperature implies.</dd>
+        <dt>Imagery</dt><dd>GOES-19, GOES-18 and Himawari-9 from <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener noreferrer">NOAA open data on AWS</a>. Meteosat-12 and Meteosat-9 from <a href="https://view.eumetsat.int" target="_blank" rel="noopener noreferrer">EUMETView</a>, © EUMETSAT.</dd>
+        <dt>Storms</dt><dd>Names, official winds and past tracks from the <a href="https://www.nhc.noaa.gov" target="_blank" rel="noopener noreferrer">National Hurricane Center</a> and the <a href="https://www.metoc.navy.mil/jtwc/jtwc.html" target="_blank" rel="noopener noreferrer">Joint Typhoon Warning Center</a>.</dd>
+        <dt>Earth</dt><dd>Where no satellite saw daylight: NASA Blue Marble, with Black Marble city lights at night, via the three-globe examples.</dd>
+        <dt>3D</dt><dd>Cloud heights are modelled from cloud-top temperature (about 6.3 °C colder per km), not measured.</dd>
+        <dt>Built with</dt><dd><a href="https://threejs.org" target="_blank" rel="noopener noreferrer">three.js</a> and <a href="https://vite.dev" target="_blank" rel="noopener noreferrer">Vite</a>. © 2026 aunai-org, <a href="https://opensource.org/license/mit" target="_blank" rel="noopener noreferrer">MIT</a> licensed. <a href="/third-party-notices.txt" target="_blank" rel="noopener noreferrer">Third-party notices</a>.</dd>
+      </dl>
+      <p class="disclaimer">Not an official forecast. Names and winds are from the latest advisory; intensities marked ≈ are rough, unofficial estimates from the infrared.</p>
+    </section>
     </div>
 
     <div class="bar panel" role="toolbar" aria-label="View controls">

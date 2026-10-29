@@ -279,7 +279,7 @@ The scene is drawn in *high dynamic range*: colours can be brighter than white, 
 
 ### 6.4 The interface
 
-`src/ui.ts` handles the bar at the bottom (View, Colours, Light, Layers and Replay, each with a small caption; one row on a desktop, a two-column grid on a phone), the storm list, the city and storm labels (storms without a close-up are dimmed and fly the camera to them), and the two drawers on the right edge (Storm and Legend), which close by themselves after a few seconds. The legend's colour ramp is built from the same palette the shaders use.
+`src/ui.ts` handles the bar at the bottom (View, Colours, Light, Layers and Replay, each with a small caption; one row on a desktop, a two-column grid on a phone), the storm list, the city and storm labels (storms without a close-up are dimmed and fly the camera to them), and the three drawers on the right edge: Storm and Legend, which close by themselves after a few seconds, and About (what the page shows and the credits for every data source), which stays open until you close it. The legend's colour ramp is built from the same palette the shaders use.
 
 **The replay.** Each shader that reads loop frames (the cloud shell, the imagery patch, Cloud heights and 3D storm) carries frame A forward along the motion and frame B back, by how far the moment is between them (`src/hdr/loop.ts`). The two then dissolve only through the middle of the slot, where the motion has lined them up, so one sharp frame is on screen most of the time. A pair without a motion file holds the first frame for three quarters of its slot, then fades quickly to the next, as before.
 
