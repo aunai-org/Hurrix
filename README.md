@@ -6,7 +6,7 @@
 
 Hurrix takes the pictures that weather satellites send down every ten minutes and puts them on a globe you can spin. It takes the list of storms the official warning centres are tracking right now (the US National Hurricane Center and the Joint Typhoon Warning Center), names each one on the globe, and lets you fly in and see any of them in 3D.
 
-Nothing on the globe is drawn by hand. Every cloud you see is a pixel the satellite measured. The only modelled parts are the heights in the 3D views, which come from the cloud temperatures (see [how the 3D views work](docs/spec.md#8-the-3d-views)).
+Nothing on the globe is drawn by hand. Every cloud you see is a pixel the satellite measured. The only modelled parts are the heights in the 3D views, which come from the cloud temperatures (see [how the 3D views work](docs/spec.md#8-the-3d-views) and [how cloud heights are calculated](docs/cloud-heights.md)).
 
 For the full story (every data source, the pipeline step by step, how the 3D views are built, and the libraries), read **[How Hurrix works](docs/spec.md)**. It's written for learners and developers, with a glossary for the jargon.
 
