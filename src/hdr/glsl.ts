@@ -311,8 +311,9 @@ export const VOLUME = {
     ${GLSL_IR}
     // explicit level 0: these are read inside a loop with early exits, where the GPU can't work out a mip level by itself
     // (on real GPUs that gave a blurred, cloudless frame; software renderers happened to cope)
-    // (the motion textures have no mip levels, so flowAt's plain lookup is safe here)
-    ${FLOW}
+    // (the motion lookup is explicit level 0 too: an implicit-gradient read inside this loop fails to compile on some
+    // Windows/Direct3D drivers, and the 3D storm then draws nothing)
+    ${FLOW.replace("texture2D(m, uv)", "textureLod(m, uv, 0.0)")}
     vec3 visAt(vec2 uv){ vec2 F = flowAt(visFlow, uv, visFlowMax);
       return mix(textureLod(vis, uv - visMix * F, 0.0).rgb, textureLod(visB, uv + (1.0 - visMix) * F, 0.0).rgb, visFade); }
     float codeAt(vec2 uv){ vec2 F = flowAt(frameFlow, uv, frameFlowMax);

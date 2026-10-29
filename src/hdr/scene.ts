@@ -42,6 +42,8 @@ export interface Globe {
   prepareLoop(frames: number[]): Promise<void>;
   /** Loop position along the prepared frames (fractional), or null for the latest full-quality frame. */
   setLoop(t: number | null): void;
+  /** Called once if the 3D storm can't run on this GPU; the globe has already moved to Cloud heights. */
+  onVolumeFailed(fn: () => void): void;
   /** Called every frame after rendering, with the current mode. */
   onFrame(fn: (mode: Mode, dt: number) => void): void;
 }
@@ -399,6 +401,16 @@ export function createGlobe(canvas: HTMLCanvasElement, meta: Meta, base: string,
   flyTo(v0.pos, v0.target, 2600);
 
   const listeners: ((m: Mode, dt: number) => void)[] = [];
+  // the 3D storm is the one shader some GPUs refuse (or lose the context over); then it would draw nothing at all, so
+  // the view drops to Cloud heights instead of showing an empty frame
+  const failedFns: (() => void)[] = [];
+  let volumeFailed = false, checkedVolume = false;
+  const failVolume = () => {
+    if (volumeFailed) return;
+    volumeFailed = true; failedFns.forEach((fn) => fn());
+  };
+  canvas.addEventListener("webglcontextlost", (e) => { e.preventDefault(); if (mode === 2) failVolume(); });
+  const volumeRuns = () => renderer.info.programs?.every((p) => (p as { diagnostics?: { runnable: boolean } }).diagnostics?.runnable !== false) ?? true;
   const timer = new THREE.Timer();
   const right = new THREE.Vector3(), upv = new THREE.Vector3(), fwd = new THREE.Vector3();
   function frame() {
@@ -455,6 +467,7 @@ export function createGlobe(canvas: HTMLCanvasElement, meta: Meta, base: string,
       const clear = renderer.getClearColor(new THREE.Color()), clearA = renderer.getClearAlpha();
       renderer.setRenderTarget(volRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(volScene, camera);
       renderer.setRenderTarget(null); renderer.setClearColor(clear, clearA);
+      if (!checkedVolume) { checkedVolume = true; if (!volumeRuns()) failVolume(); }
     }
     composer.render();
   }
@@ -554,6 +567,7 @@ export function createGlobe(canvas: HTMLCanvasElement, meta: Meta, base: string,
         uni.ir.value = loopGlobe[k]; uni.irB.value = loopGlobe[k + 1]; uni.irMix.value = blendFor(m, !!fl); uni.irFade.value = fadeFor(m, !!fl); uni.irFlow.value = fl ?? noMotion;
       }
     },
+    onVolumeFailed(fn) { failedFns.push(fn); },
     onFrame(fn) { listeners.push(fn); },
   };
 }
