@@ -36,9 +36,9 @@ A few more controls:
 - **Light:** *Even* uses a fixed light that shows the 3D shapes clearly. *Real sun* puts the sun where it really was at the frame time, so half the globe is in night.
 - **Paths:** draws each storm's official past track. Each checkpoint is coloured by the official wind at that time, on the Saffir–Simpson scale (blue for a depression up to red for category 5), with a key in the Legend. It's off at first.
 - **HD:** when you zoom in, loads sharper cloud pictures (about 2.4 km per pixel instead of 10 km) for the area you're looking at. It's off at first, and it rests while the replay plays.
-- **Replay**, ▶ with **6 h / 12 h / 24 h:** replays the real satellite frames for the last 6 hours (every 10 minutes), 12 hours or 24 hours (every 30 minutes). The clouds move across the whole globe too, from hourly world frames. The clouds slide from one frame to the next along their real motion, measured between the frames, instead of fading. The frames load the first time you play a length.
+- **Replay**, ▶ with **6 h / 12 h / 24 h:** replays the real satellite frames for the last 6 hours (every 10 minutes), 12 hours or 24 hours (every 30 minutes). The clouds move across the whole globe too, from hourly world frames. The clouds slide from one frame to the next along their real motion, measured between the frames, instead of fading. The frames load the first time you play a length. While the replay plays, the true-colour day side gives way to the moving infrared clouds, because it's a single moment.
 - **Height ×** (in the two 3D views) stretches the cloud heights.
-- **Storm and Legend:** two tabs on the right edge. Each opens a panel (the storm's details, or what the colours mean) that slides back out of the way by itself.
+- **Storm, Legend and About:** three tabs on the right edge. Storm and Legend each open a panel (the storm's details, or what the colours mean) that slides back out of the way by itself. About says what the page shows and credits every data source; it stays open until you close it.
 
 On a phone the same page fits a portrait screen, with the panels as drawers on the right edge:
 
