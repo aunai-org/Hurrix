@@ -92,6 +92,8 @@ export function bindControls(globe: Globe, meta: Meta) {
     $("modehint").textContent = hints()[m];
   };
   document.querySelectorAll<HTMLElement>("[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(Number(b.dataset.mode) as Mode)));
+  // a GPU that can't run the 3D storm gets Cloud heights, with a line saying why, not an empty frame
+  globe.onVolumeFailed(() => { setMode(1); $("modehint").textContent = "This screen's graphics can't draw the 3D storm, so Cloud heights shows the same storm instead."; });
   // imagery style, with a legend to match
   const RAMPS: Record<Style, { ramp: string; ticks: string[]; hint: () => string }> = {
     0: { ramp: "linear-gradient(90deg, #3a3f46, #e9ecef)", ticks: ["warm, low", "cold, high"],
