@@ -13,6 +13,12 @@ if [ ! -f cache/clouds.png ]; then
 fi
 # Himawari skips the 02:40 and 14:40 slots every day, so take the slot before
 case $F in *T02:40|*T14:40) F=$(date -u -d "$F 10 minutes ago" +%Y-%m-%dT%H:%M);; esac
+# Himawari also drops other slots now and then (2026-11-06 07:00 was missing outright): step back until a slot has tiles, at most 6 slots
+for _ in 1 2 3 4 5 6; do
+  curl -sS "https://noaa-himawari9.s3.amazonaws.com/?list-type=2&max-keys=1&prefix=AHI-L2-FLDK-ISatSS/$(date -u -d "$F" +%Y/%m/%d/%H%M)/" | grep -q '<Key>' && break
+  echo "no Himawari data at $F, trying the slot before"
+  F=$(date -u -d "$F 10 minutes ago" +%Y-%m-%dT%H:%M)
+done
 echo "frame $F"
 ./fetch.sh "$F"
 FRAME=$F python3 -W ignore reproject.py 4096
