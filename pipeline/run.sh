@@ -23,7 +23,8 @@ echo "frame $F"
 ./fetch.sh "$F"
 FRAME=$F python3 -W ignore reproject.py 4096
 python3 -W ignore export.py "$D"
-FRAME=$F python3 -W ignore storms.py "$D"
+# exit 3 = no storm anywhere (quiet season): nothing to publish, and not an error
+FRAME=$F python3 -W ignore storms.py "$D" || { [ $? -eq 3 ] && { echo "no storms in view: nothing to publish"; exit 3; }; exit 1; }
 FRAME=$F python3 -W ignore visible.py "$D"
 FRAME=$F python3 -W ignore globe.py "$D"
 # the HD tiles, the replay motion and the live day side are extras: if one fails, the page simply goes without it
