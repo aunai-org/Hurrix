@@ -368,6 +368,7 @@ def sat_for(lat, lon):
     return s if view_cos(lat, lon, SATS[s]) >= 0.3 else None  # too close to the edge of every disc (e.g. the Meteosat gap)
 
 
+NO_STORMS = 3  # exit status run.sh and the refresh treat as "nothing to publish", not as a failure
 OFFICIAL_KEYS = ("name", "kind", "agency", "windKt", "pressureMb", "advisory", "history")
 
 
@@ -461,7 +462,8 @@ def main():
             meta_storms[-1].update({k: o[k] for k in OFFICIAL_KEYS}, agencyId=o.get("agencyId", o["id"]))
         print(json.dumps({k: v for k, v in meta_storms[-1].items() if k not in ("track", "loopTimes")}))
     if not meta_storms:
-        raise SystemExit("no storms found; keeping the previous data")
+        print("no storms found; keeping the previous data")
+        raise SystemExit(NO_STORMS)
     path = os.path.join(out, "meta.json")
     meta = {"frame": frame.strftime("%Y-%m-%dT%H:%MZ"), "storms": meta_storms,
             "others": [{k: o[k] for k in OFFICIAL_KEYS + ("lat", "lon")} | {"agencyId": o.get("agencyId", o["id"])} for o in others]}

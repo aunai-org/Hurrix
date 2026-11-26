@@ -12,7 +12,13 @@ STAGE=$(cd "$1" && pwd)/run-$(date -u +%Y%m%d%H%M%S)
 mkdir "$STAGE"
 python3 -m pip install -q -r pipeline/requirements.txt
 [ -d node_modules ] || npm ci --silent
-DATA="$STAGE/data" sh pipeline/run.sh
+DATA="$STAGE/data" sh pipeline/run.sh && ok=1 || rc=$?
+if [ -z "$ok" ]; then
+  [ "${rc:-1}" -eq 3 ] || exit "$rc"
+  echo "no storms in view; the published site keeps its last frame"
+  echo SKIP
+  exit 0
+fi
 npm run build --silent -- --outDir "$STAGE/dist" --emptyOutDir false
 python3 - "$STAGE" <<'EOF'
 import json, os, shutil, sys
